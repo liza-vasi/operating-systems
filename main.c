@@ -12,7 +12,7 @@ typedef struct {
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
-Event *event = NULL;
+Event event;
 int ready = 0;
 
 // Отправка событий
@@ -20,17 +20,15 @@ void *producer(void *arg) {
     for (int i = 1; i <= COUNT; i++) {
         sleep(1);
 
-        Event e = {i};
-
         pthread_mutex_lock(&mutex);
 
         while (ready)
             pthread_cond_wait(&cond, &mutex);
 
-        event = &e;
+        event.number = i;
         ready = 1;
 
-        printf("Отправлено событие %d\n", i);
+        printf("Отправлено событие %d\n", event.number);
         pthread_cond_signal(&cond);
 
         while (ready)
@@ -50,9 +48,8 @@ void *consumer(void *arg) {
         while (!ready)
             pthread_cond_wait(&cond, &mutex);
 
-        printf("Обработано событие %d\n", event->number);
+        printf("Обработано событие %d\n", event.number);
 
-        event = NULL;
         ready = 0;
 
         pthread_cond_signal(&cond);
@@ -62,7 +59,7 @@ void *consumer(void *arg) {
     return NULL;
 }
 
-int main() {
+int main(void) {
     pthread_t t1, t2;
 
     pthread_create(&t1, NULL, producer, NULL);
